@@ -1,0 +1,50 @@
+version: '3.1'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+    volumes:
+      - type: bind
+        source: app/static
+        target: /app/static
+      - "./:/app:z"
+      - "/etc/localtime:/etc/localtime:ro"
+    command: gunicorn run:app --bind 0.0.0.0:8000
+    depends_on:
+      - db
+    ports:
+      - 8000:8000
+    environment:
+      SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI}
+      db_user: ${db_user}
+      db_pass: ${db_pass}
+  
+
+  db:
+    image: mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+
+  adminer:
+    image: adminer
+    ports:
+      - 5000:5000
+
+  nginx:
+    image: webapp-nginx
+    build:
+      context: .
+      dockerfile: Dockerfile-nginx
+    ports:
+      - 8888:80
+    depends_on:
+      - app
+    volumes:
+      - type: bind
+        source: app/static
+        target: /home/app/web/staticfiles
+volumes:
+  static_volume:
